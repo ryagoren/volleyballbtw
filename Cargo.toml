@@ -1,0 +1,15 @@
+[package]
+name = "scrape"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+scraper = "0.17.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+reqwest = "0.12.8"
+tokio = { version = "1.41.0", features = ["full"] }
+chrono = "0.4.38"
