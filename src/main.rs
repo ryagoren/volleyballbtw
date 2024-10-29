@@ -132,7 +132,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let html = fetch_html(DIV_3_ID).await?;
     let teams = parse_volleyball_table(&html)?;
     print_dbg(&teams);
-    let filename = format!("volleyball_standings.csv", today);
+    let filename = format!("volleyball_standings.csv");
     let mut file = std::fs::File::create(filename)?;
     save_csv(&teams, &mut file);
     eprintln!("saved innit");
