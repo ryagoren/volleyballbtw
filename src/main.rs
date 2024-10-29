@@ -90,8 +90,8 @@ fn parse_volleyball_table(html: &str) -> Result<Vec<TeamStats>, anyhow::Error> {
     Ok(teams)
 }
 
-fn save_csv(teams: &[TeamStats], writer: &mut impl Write) {
-    writeln!(writer, "Position,Team,Played,Wins,Losses,Sets For,Sets Against,Sets Difference,Points For,Points Against,Points Quotient,Points");
+fn save_csv(teams: &[TeamStats], writer: &mut impl Write) -> anyhow::Result<()> {
+    writeln!(writer, "Position,Team,Played,Wins,Losses,Sets For,Sets Against,Sets Difference,Points For,Points Against,Points Quotient,Points")?;
     for team in teams {
         writeln!(
             writer,
@@ -108,39 +108,15 @@ fn save_csv(teams: &[TeamStats], writer: &mut impl Write) {
             team.points_against,
             team.points_quotient,
             team.points
-        )
-        .expect("big sad failed 2 write csv line");
+        )?;
     }
+    Ok(())
 }
-
-fn print_dbg(teams: &[TeamStats]) {
-    println!("{:<3} | {:<20} | {:>2} | {:>2} | {:>2} | {:>2} | {:>2} | {:>3} | {:>3} | {:>3} | {:>6} | {:>3}",
-        "Pos", "Team", "P", "W", "L", "SF", "SA", "+/-", "PF", "PA", "PQ", "Pts");
-    println!("{:-<80}", "");
-    for team in teams {
-        println!("{:<3} | {:<20} | {:>2} | {:>2} | {:>2} | {:>2} | {:>2} | {:>3} | {:>3} | {:>3} | {:>6} | {:>3}",
-            team.position,
-            team.team,
-            team.played,
-            team.wins,
-            team.losses,
-            team.sets_for,
-            team.sets_against,
-            team.sets_difference,
-            team.points_for,
-            team.points_against,
-            team.points_quotient,
-            team.points
-        );
-    }
-}
-
 
 #[derive(clap::Parser, Debug)]
 struct Args {
     output_dir: Option<String>
 }
-
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
@@ -150,13 +126,14 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let teams = vec![
         ("division_1_men_nvl", "196048"),
-        ("div_3a_men", "198880"),
-        ("div_2a_men", "198882"),
+        ("div_2a_men", "198880"),
+        ("div_3a_men", "198882"),
         ("div_1a_women", "198885"),
         ("div_1b_women", "198886"),
         ("div_2a_women", "198887"),
         ("div_2b_women", "198888"),
     ];
+
     for (label, id) in teams {
         eprintln!("Retrieving table for team={label}, id={id}...");
         let html = fetch_html(id).await?;
