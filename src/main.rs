@@ -1,6 +1,7 @@
 use scraper::{Html, Selector};
 use serde::Serialize;
 use std::io::Write;
+use clap::Parser;
 
 #[derive(Debug, Serialize)]
 struct TeamStats {
@@ -134,8 +135,19 @@ fn print_dbg(teams: &[TeamStats]) {
     }
 }
 
+
+#[derive(clap::Parser, Debug)]
+struct Args {
+    output_dir: Option<String>
+}
+
+
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
+    let Args {output_dir} = Args::parse();
+
+    let output_dir = output_dir.map(|x| format!("{x}/")).unwrap_or_default();
+
     let teams = vec![
         ("division_1_men_nvl", "196048"),
         ("div_3a_men", "198880"),
@@ -149,8 +161,7 @@ async fn main() -> Result<(), anyhow::Error> {
         eprintln!("Retrieving table for team={label}, id={id}...");
         let html = fetch_html(id).await?;
         let teams = parse_volleyball_table(&html)?;
-        let filename = format!("{label}.csv");
-        let mut file = std::fs::File::create(filename)?;
+        let mut file = std::fs::File::create(format!("{output_dir}{label}.csv"))?;
         save_csv(&teams, &mut file);
         eprintln!("Saved: {:?}", id);
     }
