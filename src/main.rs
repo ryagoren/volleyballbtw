@@ -1,8 +1,6 @@
 use scraper::{Html, Selector};
 use serde::Serialize;
-use std::{io::Write};
-
-const DIV_3_ID: &str = "198882";
+use std::io::Write;
 
 #[derive(Debug, Serialize)]
 struct TeamStats {
@@ -30,7 +28,12 @@ struct TablePls {
 async fn fetch_html(competition_id: &str) -> Result<String, anyhow::Error> {
     let client = reqwest::Client::new();
     let mut headers = reqwest::header::HeaderMap::new();
-    headers.insert(reqwest::header::CONTENT_TYPE, reqwest::header::HeaderValue::from_static("application/x-www-form-urlencoded; charset=UTF-8"));
+    headers.insert(
+        reqwest::header::CONTENT_TYPE,
+        reqwest::header::HeaderValue::from_static(
+            "application/x-www-form-urlencoded; charset=UTF-8",
+        ),
+    );
 
     let request_body = TablePls {
         competition_id: competition_id.to_string(),
@@ -46,9 +49,11 @@ async fn fetch_html(competition_id: &str) -> Result<String, anyhow::Error> {
 
     let text = response.text().await?;
     let jval: serde_json::Value = serde_json::from_str(&text)?;
-    Ok(jval["CompTables"].as_str().map(|ct| ct.to_string()).expect("no table we tried"))
+    Ok(jval["CompTables"]
+        .as_str()
+        .map(|ct| ct.to_string())
+        .expect("no table we tried"))
 }
-
 
 fn parse_volleyball_table(html: &str) -> Result<Vec<TeamStats>, anyhow::Error> {
     let document = Html::parse_document(html);
@@ -84,10 +89,12 @@ fn parse_volleyball_table(html: &str) -> Result<Vec<TeamStats>, anyhow::Error> {
     Ok(teams)
 }
 
-fn save_csv(teams: &[TeamStats], writer: &mut impl Write ) {
+fn save_csv(teams: &[TeamStats], writer: &mut impl Write) {
     writeln!(writer, "Position,Team,Played,Wins,Losses,Sets For,Sets Against,Sets Difference,Points For,Points Against,Points Quotient,Points");
     for team in teams {
-        writeln!(writer, "{},{},{},{},{},{},{},{},{},{},{},{}",
+        writeln!(
+            writer,
+            "{},{},{},{},{},{},{},{},{},{},{},{}",
             team.position,
             team.team,
             team.played,
@@ -100,7 +107,8 @@ fn save_csv(teams: &[TeamStats], writer: &mut impl Write ) {
             team.points_against,
             team.points_quotient,
             team.points
-        ).expect("big sad failed 2 write csv line");
+        )
+        .expect("big sad failed 2 write csv line");
     }
 }
 
@@ -126,15 +134,25 @@ fn print_dbg(teams: &[TeamStats]) {
     }
 }
 
-
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-    let html = fetch_html(DIV_3_ID).await?;
-    let teams = parse_volleyball_table(&html)?;
-    print_dbg(&teams);
-    let filename = format!("volleyball_standings.csv");
-    let mut file = std::fs::File::create(filename)?;
-    save_csv(&teams, &mut file);
-    eprintln!("saved innit");
+    let teams = vec![
+        ("division_1_men_nvl", "196048"),
+        ("div_3a_men", "198880"),
+        ("div_2a_men", "198882"),
+        ("div_1a_women", "198885"),
+        ("div_1b_women", "198886"),
+        ("div_2a_women", "198887"),
+        ("div_2b_women", "198888"),
+    ];
+    for (label, id) in teams {
+        eprintln!("Retrieving table for team={label}, id={id}...");
+        let html = fetch_html(id).await?;
+        let teams = parse_volleyball_table(&html)?;
+        let filename = format!("{label}.csv");
+        let mut file = std::fs::File::create(filename)?;
+        save_csv(&teams, &mut file);
+        eprintln!("Saved: {:?}", id);
+    }
     Ok(())
 }
