@@ -1,7 +1,7 @@
+use clap::Parser;
 use scraper::{Html, Selector};
 use serde::Serialize;
 use std::io::Write;
-use clap::Parser;
 
 #[derive(Debug, Serialize)]
 struct TeamStats {
@@ -115,12 +115,24 @@ fn save_csv(teams: &[TeamStats], writer: &mut impl Write) -> anyhow::Result<()> 
 
 #[derive(clap::Parser, Debug)]
 struct Args {
-    output_dir: Option<String>
+    output_dir: Option<String>,
+}
+
+macro_rules! or_continue {
+    ($res:expr, $msg:expr) => {
+        match $res {
+            Ok(val) => val,
+            Err(e) => {
+                eprintln!("Failed to parse {}, with error={e}", $msg);
+                continue;
+            }
+        }
+    };
 }
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-    let Args {output_dir} = Args::parse();
+    let Args { output_dir } = Args::parse();
 
     let output_dir = output_dir.map(|x| format!("{x}/")).unwrap_or_default();
 
@@ -136,11 +148,14 @@ async fn main() -> Result<(), anyhow::Error> {
 
     for (label, id) in teams {
         eprintln!("Retrieving table for team={label}, id={id}...");
-        let html = fetch_html(id).await?;
-        let teams = parse_volleyball_table(&html)?;
-        let mut file = std::fs::File::create(format!("{output_dir}{label}.csv"))?;
-        save_csv(&teams, &mut file);
-        eprintln!("Saved: {:?}", id);
+        let html = or_continue!(fetch_html(id).await, label);
+        let teams = or_continue!(parse_volleyball_table(&html), label);
+        let mut file = or_continue!(
+            std::fs::File::create(format!("{output_dir}{label}.csv")),
+            label
+        );
+        or_continue!(save_csv(&teams, &mut file), label);
+        eprintln!("Saved!");
     }
     Ok(())
 }
