@@ -1,6 +1,6 @@
 use scraper::{Html, Selector};
 use serde::Serialize;
-use std::{error::Error, io::Write};
+use std::{io::Write};
 
 const DIV_3_ID: &str = "198882";
 
@@ -132,8 +132,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let html = fetch_html(DIV_3_ID).await?;
     let teams = parse_volleyball_table(&html)?;
     print_dbg(&teams);
-    let today = chrono::Local::now().format("%Y-%m-%d");
-    let filename = format!("volleyball_standings_{}.csv", today);
+    let filename = format!("volleyball_standings.csv", today);
     let mut file = std::fs::File::create(filename)?;
     save_csv(&teams, &mut file);
     eprintln!("saved innit");
